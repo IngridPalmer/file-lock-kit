@@ -28,3 +28,10 @@ The trade-off: this is a *sentinel-file* lock, not a byte-range lock. It cannot 
 If the holder process is killed, the lockfile is **left behind on disk**. A crash does not tidy up — it only frees the file descriptor. The next caller of `acquire()` will see the stale file and get `false`. This is deliberate: silently deleting a lockfile you did not create would race with a holder that is merely paused, not dead. If you need automatic recovery from stale locks, schedule a cleanup with a heartbeat and a TTL; that is a distributed-mutex problem, not a file problem.
 
 `acquire()` returns `false` only for `EEXIST` (already locked). Every other failure — bad path, missing parent, permissions — throws. Check the return value; do not wrap `acquire` in `try/catch` expecting it to report "locked".
+
+## Performance
+
+The window keeps a bounded buffer, so `push` is constant time and memory does not
+grow with the length of the stream. `peak` and `trough` are linear in the window
+size, which is the trade that keeps `push` cheap.
+
